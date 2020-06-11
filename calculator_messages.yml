@@ -1,0 +1,6 @@
+welcome: "Welcome to calculator!  Enter a number."
+welcome2: "Enter the next number: "
+invalid_entries: "You entered an invalid entry or entries, try again."
+invalid_operation: "You entered an invalid operation, try again."
+perform_again: "Perform another calculation? (Y)es to continue, or (Q) to quit."
+exit_message: "Thanks for using!"
