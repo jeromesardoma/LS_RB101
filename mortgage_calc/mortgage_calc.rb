@@ -1,5 +1,5 @@
 def valid_input?(entry)
-  entry != nil && (entry.to_i.to_s == entry || entry.to_f.to_s == entry) && entry.to_f > 0
+  entry && (entry.to_i.to_s == entry || entry.to_f.to_s == entry) && entry.to_f > 0
 end
 
 loop do
