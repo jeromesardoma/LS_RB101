@@ -75,9 +75,9 @@ loop do
 
   display_results(choice_hash[choice], computer_choice)
 
-  results = return_results(choice_hash[choice], computer_choice)
-  human_score += 1 if results == 'player'
-  computer_score += 1 if results == 'computer'
+  winner = return_results(choice_hash[choice], computer_choice)
+  human_score += 1 if winner == 'player'
+  computer_score += 1 if winner == 'computer'
 
   display_score(human_score, computer_score)
   check_for_grand_winner(human_score, computer_score)
