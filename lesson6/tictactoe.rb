@@ -45,8 +45,14 @@ def player_places_piece!(brd)
 end
 
 def computer_places_piece!(brd)
-  square = empty_squares(brd).sample
-  brd[square] = COMPUTER_MARKER
+  if player_poses_threat?(brd)
+    almost_winning_line = almost_winning_lines(brd).sample
+    empty_space_key = brd.select{ |k, _| almost_winning_line.include?(k)}.key(INITIAL_MARKER)
+    brd[empty_space_key] = COMPUTER_MARKER
+  else
+    square = empty_squares(brd).sample
+    brd[square] = COMPUTER_MARKER
+  end
 end
 
 def board_full?(brd)
@@ -99,10 +105,22 @@ def grand_winner?(scores)
   scores.values.any? { |score| score == 5 }
 end
 
+def player_poses_threat?(brd)
+  !almost_winning_lines(brd).empty?
+end
+
+def almost_winning_lines(brd)
+  WINNING_LINES.select do |line|
+    brd.values_at(*line).count(PLAYER_MARKER) == 2 &&
+    brd.values_at(*line).count(INITIAL_MARKER) == 1
+  end
+end
+
 # BEGIN PROGRAM
 
 loop do
   game_scores = scores
+  continue = ''
 
   loop do
     board = initialize_board
@@ -133,11 +151,14 @@ loop do
     prompt 'Play again? (y or n)'
     answer = gets.chomp
     break if grand_winner?(game_scores) && answer.downcase.start_with?('y')
+    if answer.downcase.start_with?('y') == false
+      continue = false
+      break
+    end
     next if answer.downcase.start_with?('y')
   end
 
+  break if continue == false
 end 
-
-
 
 prompt 'Thanks for playing TTT! Bye.'
