@@ -102,35 +102,42 @@ end
 # BEGIN PROGRAM
 
 loop do
-  board = initialize_board
   game_scores = scores
 
   loop do
-    display_board board, game_scores
-    player_places_piece! board
-    display_board board, game_scores
-    break if someone_won?(board) || board_full?(board)
-    computer_places_piece! board
-    display_board board, game_scores
-    break if someone_won?(board) || board_full?(board)
+    board = initialize_board
+  
+    loop do
+      display_board board, game_scores
+      player_places_piece! board
+      display_board board, game_scores
+      break if someone_won?(board) || board_full?(board)
+      computer_places_piece! board
+      display_board board, game_scores
+      break if someone_won?(board) || board_full?(board)
+    end
+  
+    if someone_won?(board)
+      game_scores[detect_winner(board)] += 1
+      display_board board, game_scores
+      prompt "#{detect_winner(board)} won!"
+    else
+      prompt "It's a tie!"
+    end
+  
+    if grand_winner? game_scores
+      winner = game_scores.key(5)
+      prompt "#{winner} is the grand winner!" 
+    end
+  
+    prompt 'Play again? (y or n)'
+    answer = gets.chomp
+    break if grand_winner?(game_scores) && answer.downcase.start_with?('y')
+    next if answer.downcase.start_with?('y')
   end
 
-  if someone_won?(board)
-    game_scores[detect_winner(board)] += 1
-    display_board board, game_scores
-    prompt "#{detect_winner(board)} won!"
-  else
-    prompt "It's a tie!"
-  end
+end 
 
-  if grand_winner? game_scores
-    winner = game_scores.key(5)
-    prompt "#{winner} is the grand winner!" 
-  end
 
-  prompt 'Play again? (y or n)'
-  answer = gets.chomp
-  break unless answer.downcase.start_with? 'y'
-end
 
 prompt 'Thanks for playing TTT! Bye.'
