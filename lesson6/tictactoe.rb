@@ -45,14 +45,19 @@ def player_places_piece!(brd)
 end
 
 def computer_places_piece!(brd)
-  if player_poses_threat?(brd)
-    almost_winning_line = almost_winning_lines(brd).sample
-    empty_space_key = brd.select{ |k, _| almost_winning_line.include?(k)}.key(INITIAL_MARKER)
-    brd[empty_space_key] = COMPUTER_MARKER
+  square = 0
+  if computer_poses_threat?(brd)
+    almost_winning_computer_line = almost_winning_lines(brd, 'Computer').sample
+    square = brd.select{ |k, _| almost_winning_computer_line.include?(k) }.key(INITIAL_MARKER)
+  elsif player_poses_threat?(brd)
+    almost_winning_player_line = almost_winning_lines(brd, 'Player').sample
+    square = brd.select{ |k, _| almost_winning_player_line.include?(k) }.key(INITIAL_MARKER)
+  elsif brd[5] == INITIAL_MARKER
+    square = 5
   else
     square = empty_squares(brd).sample
-    brd[square] = COMPUTER_MARKER
   end
+  brd[square] = COMPUTER_MARKER
 end
 
 def board_full?(brd)
@@ -106,12 +111,19 @@ def grand_winner?(scores)
 end
 
 def player_poses_threat?(brd)
-  !almost_winning_lines(brd).empty?
+  !almost_winning_lines(brd, 'Player').empty?
 end
 
-def almost_winning_lines(brd)
+def computer_poses_threat?(brd)
+  !almost_winning_lines(brd, 'Computer').empty?
+end  
+
+def almost_winning_lines(brd, player_or_computer)
+  marker = ''
+  marker = PLAYER_MARKER if player_or_computer == 'Player'
+  marker = COMPUTER_MARKER if player_or_computer == 'Computer'
   WINNING_LINES.select do |line|
-    brd.values_at(*line).count(PLAYER_MARKER) == 2 &&
+    brd.values_at(*line).count(marker) == 2 &&
     brd.values_at(*line).count(INITIAL_MARKER) == 1
   end
 end
