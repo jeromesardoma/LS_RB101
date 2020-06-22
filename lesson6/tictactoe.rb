@@ -11,16 +11,19 @@ def prompt(message)
   puts "==> #{message}"
 end
 
-def display_board(brd, scores)
+def display_board(brd)
   system 'clear'
   puts "You're a #{PLAYER_MARKER}. Computer is #{COMPUTER_MARKER}."
-  puts "Player score is #{scores['Player']}."
-  puts "Computer score is #{scores['Computer']}."
   puts "#{brd[1]}|#{brd[2]}|#{brd[3]}"
   puts '-----'
   puts "#{brd[4]}|#{brd[5]}|#{brd[6]}"
   puts '-----'
   puts "#{brd[7]}|#{brd[8]}|#{brd[9]}"
+end
+
+def display_scores(score_hsh)
+  puts "Player score is #{score_hsh['Player']}."
+  puts "Computer score is #{score_hsh['Computer']}."
 end
 
 def initialize_board
@@ -47,11 +50,11 @@ end
 def computer_places_piece!(brd)
   square = 0
   if computer_poses_threat?(brd)
-    almost_winning_computer_line = almost_winning_lines(brd, 'Computer').sample
-    square = brd.select{ |k, _| almost_winning_computer_line.include?(k) }.key(INITIAL_MARKER)
+    winning_c_line = almost_winning_lines(brd, 'Computer').sample
+    square = brd.select { |k, _| winning_c_line.include?(k) }.key(INITIAL_MARKER)
   elsif player_poses_threat?(brd)
-    almost_winning_player_line = almost_winning_lines(brd, 'Player').sample
-    square = brd.select{ |k, _| almost_winning_player_line.include?(k) }.key(INITIAL_MARKER)
+    winning_p_line = almost_winning_lines(brd, 'Player').sample
+    square = brd.select { |k, _| winning_p_line.include?(k) }.key(INITIAL_MARKER)
   elsif brd[5] == INITIAL_MARKER
     square = 5
   else
@@ -80,30 +83,18 @@ def detect_winner(brd)
 end
 
 def join_or(arr, delimiter=',', end_delimiter='or')
-  result = ''
-  return result = arr[0] if arr.length == 1
-  return result = arr.join(" #{end_delimiter} ") if arr.length == 2
-  arr.each_with_index do |el, ind|
-    if ind != arr.length - 1
-      result << "#{el}#{delimiter} "
-    else
-      result << "#{end_delimiter} #{el}"
-    end
+  case arr.size
+  when 0 then ''
+  when 1 then arr[0]
+  when 2 then arr.join(" #{end_delimiter} ")
+  else
+    arr[-1] = "#{end_delimiter} #{arr.last}"
+    arr.join(delimiter + ' ')
   end
-  result
-  # alternative answer
-  # case arr.size
-  # when 0 then ''
-  # when 1 then arr[0]
-  # when 2 then arr.join(" #{end_delimiter} ")
-  # else
-  #   arr[-1] = "#{end_delimiter} #{arr.last}"
-  #   arr.join(delimiter)
-  # end
 end
 
 def scores
-  {'Player' => 0, 'Computer' => 0 }
+  { 'Player' => 0, 'Computer' => 0 }
 end
 
 def grand_winner?(scores)
@@ -116,7 +107,7 @@ end
 
 def computer_poses_threat?(brd)
   !almost_winning_lines(brd, 'Computer').empty?
-end  
+end
 
 def almost_winning_lines(brd, player_or_computer)
   marker = ''
@@ -124,8 +115,28 @@ def almost_winning_lines(brd, player_or_computer)
   marker = COMPUTER_MARKER if player_or_computer == 'Computer'
   WINNING_LINES.select do |line|
     brd.values_at(*line).count(marker) == 2 &&
-    brd.values_at(*line).count(INITIAL_MARKER) == 1
+      brd.values_at(*line).count(INITIAL_MARKER) == 1
   end
+end
+
+def select_starting_player
+  selection = ''
+  loop do
+    prompt 'Who would you like to go first: (p)layer or (c)omputer?'
+    selection = gets.chomp
+    break if selection.downcase.start_with?(/c|p/i)
+    prompt 'You entered an invalid entry, try again.'
+  end
+  selection.downcase.start_with?('p') ? 'Player' : 'Computer'
+end
+
+def switch_player(player)
+  player == 'Player' ? 'Computer' : 'Player'
+end
+
+def place_piece!(brd, player)
+  player_places_piece!(brd) if player == 'Player'
+  computer_places_piece!(brd) if player == 'Computer'
 end
 
 # BEGIN PROGRAM
@@ -136,20 +147,20 @@ loop do
 
   loop do
     board = initialize_board
-  
+    current_player = select_starting_player
+
     loop do
-      display_board board, game_scores
-      player_places_piece! board
-      display_board board, game_scores
+      display_board(board)
+      display_scores(game_scores)
+      place_piece!(board, current_player)
       break if someone_won?(board) || board_full?(board)
-      computer_places_piece! board
-      display_board board, game_scores
-      break if someone_won?(board) || board_full?(board)
+      current_player = switch_player(current_player)
     end
-  
+
+    display_board(board)
     if someone_won?(board)
       game_scores[detect_winner(board)] += 1
-      display_board board, game_scores
+      display_scores(game_scores)
       prompt "#{detect_winner(board)} won!"
     else
       prompt "It's a tie!"
@@ -157,7 +168,7 @@ loop do
   
     if grand_winner? game_scores
       winner = game_scores.key(5)
-      prompt "#{winner} is the grand winner!" 
+      prompt "#{winner} is the grand winner!"
     end
   
     prompt 'Play again? (y or n)'
