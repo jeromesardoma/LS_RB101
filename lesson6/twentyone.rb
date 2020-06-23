@@ -49,7 +49,7 @@ end
 
 def calculate_value(card)
   ace = card.start_with?('A')
-  value = case card
+  value = case
           when ace then 11
           when card.split.first.to_i == 0 then 10
           else card.split.first.to_i
