@@ -24,6 +24,7 @@ def deal_card(deck, recipient)
   card = deck.sample
   remove_card!(card, deck)
   recipient[:hand] << card
+  recipient[:hand_value] += calculate_value(card)
 end
 
 def remove_card!(card, deck)
@@ -31,7 +32,10 @@ def remove_card!(card, deck)
 end
 
 def player(type)
-  { type: type, hand: [] }
+  { type: type, 
+    hand: [],
+    hand_value: 0,
+    score: 0 } 
 end
 
 def display_hand(player, dealers_turn = false)
@@ -57,18 +61,12 @@ def calculate_value(card)
   value
 end
 
-def total_value(hand)
-  score = hand.map { |card| calculate_value(card) }.reduce(:+)
-  score - 10 if hand.any? { |card| card.start_with?('A') } && score > 21
-  score
-end
-
-def display_total_value(hand)
-  score_prompt "Total is: #{total_value(hand)}."
+def display_total_value(player)
+  score_prompt "Total is: #{player[:hand_value]}."
 end
 
 def player_busted?(player)
-  total_value(player[:hand]) > 21
+  player[:hand_value] > 21
 end
 
 def retrieve_player_action
@@ -91,21 +89,65 @@ def prompt_to_play_again
 end
 
 def handle_dealer_turn(dealer, deck)
-  until total_value(dealer[:hand]) >= 17
+  until dealer[:hand_value] >= 17
     deal_card(deck, dealer)
   end
 end
 
-def evaluate_winner(dealer, human)
+def evaluate_winner(player1, player2)
+  dealer = [player1, player2].select { |person| person[:type] == 'dealer' }[0]
+  human = [player1, player2].select { |person| person[:type] == 'human' }[0]
   if player_busted?(dealer)
     prompt 'Dealer busted.  You win!'
-  elsif total_value(dealer[:hand]) > total_value(human[:hand])
+  elsif dealer[:hand_value] > human[:hand_value]
     prompt 'Dealer wins.  You lose.'
-  elsif total_value(human[:hand]) > total_value(dealer[:hand])
+  elsif human[:hand_value] > dealer[:hand_value]
     prompt 'Dealer lost.  You win!'
-  elsif total_value(dealer[:hand]) == total_value(human[:hand])
+  elsif dealer[:hand_value] == human[:hand_value]
     prompt "It's a push."
   end
+end
+
+def return_winner(player1, player2)
+  dealer = [player1, player2].select { |person| person[:type] == 'dealer' }[0]
+  human = [player1, player2].select { |person| person[:type] == 'human' }[0]
+  if player_busted?(dealer)
+    human
+  elsif player_busted?(human)
+    dealer
+  elsif dealer[:hand_value] > human[:hand_value]
+    dealer
+  elsif human[:hand_value] > dealer[:hand_value]
+    human
+  end
+end
+
+def increment_winner_score(player1, player2)
+  winner = return_winner(player1, player2)
+  winner[:score] += 1 if winner
+end
+
+def display_game_score(dealer, human)
+  score_prompt "SCORE: Dealer #{dealer[:score]}, You #{human[:score]}."
+end
+
+def initialize_players_hands(dealer, human)
+  [dealer, human].each do |person|
+    person[:hand] = []
+    person[:hand_value] = 0
+  end
+end
+
+def initialize_players_scores(p1, p2)
+  [p1, p2].each { |p| p[:score] = 0 } 
+end
+
+def grand_winner?(player1, player2)
+  [player1, player2].any? { |player| player[:score] == 5 }
+end
+
+def return_grand_winner(player1, player2)
+  [player1, player2].select { |player| player[:score] == 5 }.first
 end
 
 # BEGIN PROGRAM
@@ -113,35 +155,55 @@ end
 loop do
   human = player('human')
   dealer = player('dealer')
-  deck = initialize_deck
-
-  system 'clear'
-  prompt 'Welcome to Blackjack!'
-  2.times { deal_card(deck, human) }
-  2.times { deal_card(deck, dealer) }
+  end_game = false
 
   loop do
-    display_hand dealer
-    display_hand human
-    display_total_value(human[:hand])
-    break if player_busted?(human) || retrieve_player_action == 'stay'
-    deal_card(deck, human)
+    deck = initialize_deck
+    initialize_players_hands(dealer, human)
+    initialize_players_scores(dealer, human) if grand_winner?(dealer, human)
+  
     system 'clear'
+    prompt 'Welcome to Blackjack!'
+    2.times { deal_card(deck, human) }
+    2.times { deal_card(deck, dealer) }
+  
+    loop do
+      display_game_score(dealer, human)
+      display_hand dealer
+      display_hand human
+      display_total_value human
+      break if player_busted?(human) || retrieve_player_action == 'stay'
+      deal_card(deck, human)
+      system 'clear'
+    end
+  
+    if player_busted?(human)
+      prompt 'You busted.'
+    else
+      system 'clear'
+      handle_dealer_turn(dealer, deck)
+      display_hand(dealer, true)
+      display_total_value dealer
+      display_hand human
+      display_total_value human
+      evaluate_winner(dealer, human)
+    end
+
+    increment_winner_score(dealer, human)
+
+    if grand_winner?(dealer, human)
+      prompt "#{return_grand_winner(dealer, human)[:type].capitalize} is the grand winner!"
+    end
+
+    unless prompt_to_play_again == 'yes'
+      end_game = true
+      break
+    end
   end
 
-  if player_busted?(human)
-    prompt 'You busted.'
-  else
-    system 'clear'
-    handle_dealer_turn(dealer, deck)
-    display_hand(dealer, true)
-    display_total_value(dealer[:hand])
-    display_hand human
-    display_total_value(human[:hand])
-    evaluate_winner(dealer, human)
-  end
-
-  break unless prompt_to_play_again == 'yes'
+  break if end_game == true
 end
+
+
 
 prompt 'Thanks for playing blackjack! Bye.'
